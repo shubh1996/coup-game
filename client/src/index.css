@@ -1,0 +1,227 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0f172a;
+  color: #f1f5f9;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+#root {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #f59e0b;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  transition: background 0.15s, opacity 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+button:hover:not(:disabled) { background: #334155; }
+button:disabled { opacity: 0.35; cursor: not-allowed; }
+button.primary { background: #f59e0b; color: #0f172a; border-color: transparent; font-size: 1rem; padding: 0.65rem 1.5rem; }
+button.primary:hover:not(:disabled) { background: #d97706; }
+button.danger { background: #7f1d1d; border-color: #dc2626; }
+button.danger:hover:not(:disabled) { background: #991b1b; }
+button.selected { outline: 2px solid #f59e0b; outline-offset: 2px; }
+
+input {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 1rem;
+}
+input:focus { outline: none; border-color: #f59e0b; }
+input::placeholder { color: #64748b; }
+
+.error { color: #f87171; font-size: 0.9rem; margin-top: 0.5rem; text-align: center; }
+
+/* ── LOBBY ── */
+.lobby {
+  max-width: 400px;
+  margin: 5rem auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tagline { color: #94a3b8; font-size: 1.1rem; }
+.hint { color: #64748b; font-size: 0.9rem; }
+
+.lobby-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.or-divider { color: #475569; font-size: 0.85rem; margin: 0.25rem 0; }
+
+.room-code-box {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid #334155;
+}
+.room-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+.room-id { font-size: 2rem; font-weight: 800; color: #f59e0b; letter-spacing: 0.2em; }
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #334155;
+  text-align: left;
+}
+.player-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+  color: #e2e8f0;
+}
+.you-tag {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  background: #334155;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+/* ── GAME ── */
+.game { display: flex; flex-direction: column; gap: 1rem; }
+
+.players-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.player-card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  min-width: 140px;
+  flex: 1 1 140px;
+  max-width: 200px;
+  border: 2px solid transparent;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.player-card.active { border-color: #f59e0b; }
+.player-card.me { border-color: #6366f1; }
+.player-card.active.me { border-color: #f59e0b; box-shadow: 0 0 0 2px #6366f1; }
+.player-card.eliminated { opacity: 0.35; }
+
+.player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.player-name { font-weight: 700; font-size: 0.95rem; }
+.coins { font-size: 0.9rem; color: #fbbf24; font-weight: 600; }
+
+.player-cards { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.card-chip {
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: white;
+  user-select: none;
+}
+.card-chip.revealed { opacity: 0.5; text-decoration: line-through; background: #1e293b !important; border: 1px solid #334155; }
+.card-chip.clickable { cursor: pointer; }
+.card-chip.clickable:hover { filter: brightness(1.2); }
+.card-chip.selected { outline: 2px solid white; outline-offset: 2px; }
+
+.eliminated-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #ef4444;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ── PANEL ── */
+.panel {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid #334155;
+}
+.panel.urgent { border-color: #dc2626; }
+.panel.winner-panel { text-align: center; font-size: 1.6rem; font-weight: 800; color: #f59e0b; padding: 2rem; }
+
+.panel-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: #e2e8f0; }
+.panel-title strong { color: #f59e0b; }
+.must-coup { color: #ef4444; font-size: 0.85rem; margin-left: 0.5rem; }
+
+.btn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.card-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+.card-row .card-chip { padding: 0.55rem 1rem; font-size: 0.95rem; }
+
+.target-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+.target-row .label { color: #94a3b8; font-size: 0.85rem; }
+.target-btn { font-size: 0.85rem; }
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.4rem;
+}
+.actions-grid button { flex-direction: column; align-items: flex-start; padding: 0.6rem 0.75rem; gap: 0.1rem; }
+.sub { font-size: 0.72rem; font-weight: 400; color: #94a3b8; }
+
+/* ── LOG ── */
+.log {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid #334155;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.log-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; margin-bottom: 0.5rem; }
+.log-entries { display: flex; flex-direction: column; gap: 0.15rem; }
+.log-entry { font-size: 0.85rem; color: #64748b; padding: 0.2rem 0; border-bottom: 1px solid #0f172a; }
+.log-entry.latest { color: #e2e8f0; font-weight: 600; }
