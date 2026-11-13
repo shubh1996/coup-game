@@ -5,6 +5,8 @@ export default function Lobby({ game, myId, setError, error }) {
   const [name, setName] = useState('')
   const [roomCode, setRoomCode] = useState('')
   const [joined, setJoined] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [newName, setNewName] = useState('')
 
   const createRoom = () => {
     if (!name.trim()) return setError('Enter your name')
@@ -29,7 +31,16 @@ export default function Lobby({ game, myId, setError, error }) {
     })
   }
 
+  const saveName = () => {
+    if (!newName.trim()) return
+    socket.emit('rename_player', { name: newName.trim() }, (res) => {
+      if (res?.error) setError(res.error)
+      else { setEditingName(false); setError(null) }
+    })
+  }
+
   const isHost = game?.players[0]?.id === myId
+  const myPlayer = game?.players.find(p => p.id === myId)
 
   if (joined && game) {
     return (
@@ -50,16 +61,34 @@ export default function Lobby({ game, myId, setError, error }) {
           ))}
         </div>
 
+        {/* Name change */}
+        {editingName ? (
+          <div className="name-edit">
+            <input
+              autoFocus
+              placeholder="New name"
+              value={newName}
+              maxLength={20}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveName()}
+            />
+            <div className="btn-row">
+              <button onClick={saveName} className="primary" style={{ flex: 1 }}>Save</button>
+              <button onClick={() => setEditingName(false)} style={{ flex: 1 }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <button className="rename-btn" onClick={() => { setNewName(myPlayer?.name || ''); setEditingName(true) }}>
+            ✏️ Change my name
+          </button>
+        )}
+
         {isHost ? (
-          <button
-            className="primary"
-            onClick={startGame}
-            disabled={game.players.length < 2}
-          >
+          <button className="primary" onClick={startGame} disabled={game.players.length < 2}>
             {game.players.length < 2 ? 'Waiting for players...' : 'Start Game'}
           </button>
         ) : (
-          <p className="hint">Waiting for host to start the game...</p>
+          <p className="hint">Waiting for host to start...</p>
         )}
 
         {error && <div className="error">{error}</div>}

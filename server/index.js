@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const {
   createGame, addPlayer, removePlayer, startGame,
   takeAction, reactToAction, reactToBlock,
-  loseInfluence, exchangeCards, playerView,
+  loseInfluence, exchangeCards, playerView, currentPlayer, nextTurn,
 } = require('./game');
 
 const app = express();
@@ -18,6 +18,50 @@ function broadcast(game) {
   for (const player of game.players) {
     const socket = io.sockets.sockets.get(player.id);
     if (socket) socket.emit('game_state', playerView(game, player.id));
+  }
+}
+
+// When a player disconnects mid-game, unblock any waiting game state
+function handleInGameDisconnect(game, socketId) {
+  if (game.phase !== 'playing') return;
+  const turn = game.turn;
+  if (!turn) return;
+
+  // Unblock awaiting_reactions — auto-pass for the disconnected player
+  if (turn.phase === 'awaiting_reactions' && socketId in (turn.reactions || {})) {
+    if (turn.reactions[socketId] === null) {
+      reactToAction(game, socketId, { type: 'pass' });
+    }
+    return;
+  }
+
+  // Unblock awaiting_block_reaction — if disconnected actor, auto-allow the block
+  if (turn.phase === 'awaiting_block_reaction' && turn.action?.actor === socketId) {
+    reactToBlock(game, socketId, { type: 'allow' });
+    return;
+  }
+
+  // Unblock lose_influence — auto-reveal first unrevealed card
+  if (turn.phase === 'lose_influence' && turn.pendingLoseInfluence?.includes(socketId)) {
+    const player = game.players.find(p => p.id === socketId);
+    const idx = player?.cards.findIndex(c => !c.revealed) ?? -1;
+    if (idx >= 0) loseInfluence(game, socketId, idx);
+    return;
+  }
+
+  // Unblock awaiting_exchange — auto-keep first N cards
+  if (turn.phase === 'awaiting_exchange' && turn.action?.actor === socketId) {
+    const player = game.players.find(p => p.id === socketId);
+    const aliveCount = player?.cards.filter(c => !c.revealed).length ?? 0;
+    const kept = (turn.exchangeOptions || []).slice(0, aliveCount);
+    if (kept.length === aliveCount) exchangeCards(game, socketId, kept);
+    return;
+  }
+
+  // If it's the disconnected player's turn to act, skip to next
+  if (turn.phase === 'action' && currentPlayer(game)?.id === socketId) {
+    game.log.push(`${currentPlayer(game).name} disconnected — skipping turn`);
+    nextTurn(game);
   }
 }
 
@@ -40,6 +84,21 @@ io.on('connection', (socket) => {
     const id = roomId?.toUpperCase();
     const game = rooms.get(id);
     if (!game) return cb({ error: 'Room not found' });
+
+    // Reconnection: if game is active and player with same name exists, restore their session
+    if (game.phase === 'playing') {
+      const existing = game.players.find(p => p.name.toLowerCase() === name.trim().toLowerCase());
+      if (existing) {
+        playerRoom.delete(existing.id);
+        existing.id = socket.id;
+        playerRoom.set(socket.id, id);
+        socket.join(id);
+        socket.emit('game_state', playerView(game, socket.id));
+        cb?.({ ok: true });
+        return;
+      }
+    }
+
     const result = addPlayer(game, socket.id, name.trim());
     if (result.error) return cb(result);
     playerRoom.set(socket.id, id);
@@ -54,6 +113,19 @@ io.on('connection', (socket) => {
     if (game.players[0]?.id !== socket.id) return cb?.({ error: 'Only the host can start' });
     const result = startGame(game);
     if (result.error) return cb?.(result);
+    broadcast(game);
+    cb?.({ ok: true });
+  });
+
+  socket.on('rename_player', ({ name }, cb) => {
+    const game = rooms.get(playerRoom.get(socket.id));
+    if (!game) return cb?.({ error: 'No room' });
+    if (game.phase !== 'lobby') return cb?.({ error: 'Can only rename before game starts' });
+    if (!name?.trim()) return cb?.({ error: 'Name required' });
+    const taken = game.players.find(p => p.id !== socket.id && p.name.toLowerCase() === name.trim().toLowerCase());
+    if (taken) return cb?.({ error: 'Name already taken' });
+    const player = game.players.find(p => p.id === socket.id);
+    if (player) player.name = name.trim();
     broadcast(game);
     cb?.({ ok: true });
   });
@@ -107,6 +179,9 @@ io.on('connection', (socket) => {
         removePlayer(game, socket.id);
         if (game.players.length === 0) rooms.delete(roomId);
         else broadcast(game);
+      } else if (game.phase === 'playing') {
+        handleInGameDisconnect(game, socket.id);
+        broadcast(game);
       }
     }
     playerRoom.delete(socket.id);

@@ -409,5 +409,5 @@ function removePlayer(game, socketId) {
 module.exports = {
   createGame, addPlayer, removePlayer, startGame,
   takeAction, reactToAction, reactToBlock,
-  loseInfluence, exchangeCards, playerView, currentPlayer,
+  loseInfluence, exchangeCards, playerView, currentPlayer, nextTurn,
 };
